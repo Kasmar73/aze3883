@@ -2,14 +2,35 @@
 require_once 'config/database.php';
 require_once 'config/telegram.php';
 
+// Debug mode
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Log faylı
+$log_file = 'logs/webhook_' . date('Y-m-d') . '.log';
+
+function writeLog($message) {
+    global $log_file;
+    $timestamp = date('Y-m-d H:i:s');
+    file_put_contents($log_file, "[{$timestamp}] {$message}\n", FILE_APPEND | LOCK_EX);
+}
+
+writeLog("Webhook çağırıldı");
+
 // Webhook məlumatlarını al
 $input = file_get_contents('php://input');
+writeLog("Input: " . $input);
+
 $update = json_decode($input, true);
 
 if (!$update) {
+    writeLog("JSON parse xətası: " . json_last_error_msg());
     http_response_code(400);
-    exit('Invalid JSON');
+    echo json_encode(['error' => 'Invalid JSON', 'input' => $input]);
+    exit;
 }
+
+writeLog("Update alındı: " . json_encode($update));
 
 // Veritabanını başlat
 $database = new Database();
