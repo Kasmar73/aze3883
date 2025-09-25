@@ -250,7 +250,11 @@ function insertDefaultData(\$conn) {
                 echo "<p class='error'>❌ Cədvəl yaratma xətası</p>";
             }
         } else {
-            echo "<p class='error'>❌ Veritabanı konfiqurasiyası yaradıla bilmədi</p>";
+            echo "<div class='alert alert-warning'>
+                <h5>⚠️ Fayl yaradıla bilmədi</h5>
+                <p>Manual olaraq <code>config/database.php</code> faylını yaradın və aşağıdakı kodu əlavə edin:</p>
+                <div class='code' style='max-height: 300px; overflow-y: auto;'>" . htmlspecialchars($config_content) . "</div>
+            </div>";
         }
         
     } catch (PDOException $e) {
@@ -391,7 +395,11 @@ class TelegramBot {
             echo "<p class='error'>❌ Webhook xətası: " . $webhook_result['description'] . "</p>";
         }
     } else {
-        echo "<p class='error'>❌ Bot konfiqurasiyası yaradıla bilmədi</p>";
+        echo "<div class='alert alert-warning'>
+            <h5>⚠️ Fayl yaradıla bilmədi</h5>
+            <p>Manual olaraq <code>config/telegram.php</code> faylını yaradın və aşağıdakı kodu əlavə edin:</p>
+            <div class='code' style='max-height: 300px; overflow-y: auto;'>" . htmlspecialchars($telegram_config) . "</div>
+        </div>";
     }
     
 } else {
