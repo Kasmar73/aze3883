@@ -1,5 +1,5 @@
 <?php
-// SMM Panel Quraşdırma Skripti
+// Sadə quraşdırma skripti
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -12,90 +12,70 @@ echo "<!DOCTYPE html>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'>
     <style>
         body { background-color: #f8f9fa; }
-        .install-container { max-width: 800px; margin: 50px auto; }
+        .container { max-width: 800px; margin: 50px auto; }
         .step { margin-bottom: 30px; }
         .step-header { background: linear-gradient(45deg, #007bff, #0056b3); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         .success { color: #28a745; }
         .error { color: #dc3545; }
         .warning { color: #ffc107; }
+        .code { background-color: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; }
     </style>
 </head>
 <body>
-<div class='container install-container'>
+<div class='container'>
     <div class='text-center mb-5'>
         <h1>🤖 SMM Panel Quraşdırma</h1>
         <p class='lead'>Telegram Bot üçün SMM Panel Webapp</p>
     </div>";
 
-$steps = [];
-$all_success = true;
-
-// Step 1: PHP versiyasını yoxla
+// Step 1: Fayl icazələrini yoxla
 echo "<div class='step'>
     <div class='step-header'>
-        <h4>1. PHP Versiyası Yoxlanılması</h4>
+        <h4>1. Fayl İcazələri Yoxlanılması</h4>
     </div>";
 
-$php_version = phpversion();
-if (version_compare($php_version, '7.4.0', '>=')) {
-    echo "<p class='success'>✅ PHP versiyası: {$php_version} (Uyğundur)</p>";
-    $steps[] = ['name' => 'PHP Version', 'status' => 'success'];
-} else {
-    echo "<p class='error'>❌ PHP versiyası: {$php_version} (7.4+ tələb olunur)</p>";
-    $steps[] = ['name' => 'PHP Version', 'status' => 'error'];
-    $all_success = false;
-}
-
-// Step 2: Tələb olunan extension-ları yoxla
-echo "</div><div class='step'>
-    <div class='step-header'>
-        <h4>2. PHP Extension-ları Yoxlanılması</h4>
-    </div>";
-
-$required_extensions = ['pdo', 'pdo_mysql', 'curl', 'json', 'mbstring'];
-$extensions_ok = true;
-
-foreach ($required_extensions as $ext) {
-    if (extension_loaded($ext)) {
-        echo "<p class='success'>✅ {$ext} extension yüklüdür</p>";
-    } else {
-        echo "<p class='error'>❌ {$ext} extension yüklü deyil</p>";
-        $extensions_ok = false;
-        $all_success = false;
-    }
-}
-
-$steps[] = ['name' => 'PHP Extensions', 'status' => $extensions_ok ? 'success' : 'error'];
-
-// Step 3: Fayl icazələrini yoxla
-echo "</div><div class='step'>
-    <div class='step-header'>
-        <h4>3. Fayl İcazələri Yoxlanılması</h4>
-    </div>";
-
-$writable_dirs = ['assets', 'config', 'api', 'logs'];
+$writable_dirs = ['config', 'api', 'assets', 'logs'];
 $permissions_ok = true;
 
 foreach ($writable_dirs as $dir) {
     if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+        if (mkdir($dir, 0755, true)) {
+            echo "<p class='success'>✅ {$dir}/ qovluğu yaradıldı</p>";
+        } else {
+            echo "<p class='error'>❌ {$dir}/ qovluğu yaradıla bilmədi</p>";
+            $permissions_ok = false;
+        }
+    } else {
+        echo "<p class='success'>✅ {$dir}/ qovluğu mövcuddur</p>";
     }
     
     if (is_writable($dir)) {
         echo "<p class='success'>✅ {$dir}/ qovluğu yazılabilir</p>";
     } else {
-        echo "<p class='error'>❌ {$dir}/ qovluğu yazıla bilmir (chmod 755 tələb olunur)</p>";
+        echo "<p class='error'>❌ {$dir}/ qovluğu yazıla bilmir</p>";
+        echo "<p class='warning'>Həll: <code>chmod 755 {$dir}</code> əmrini işlədin</p>";
         $permissions_ok = false;
-        $all_success = false;
     }
 }
 
-$steps[] = ['name' => 'File Permissions', 'status' => $permissions_ok ? 'success' : 'error'];
+if (!$permissions_ok) {
+    echo "<div class='alert alert-warning'>
+        <h5>⚠️ Fayl İcazələri Problemi</h5>
+        <p>Aşağıdakı əmrləri terminaldə işlədin:</p>
+        <div class='code'>
+            chmod 755 config<br>
+            chmod 755 api<br>
+            chmod 755 assets<br>
+            chmod 755 logs<br>
+            chmod 644 config/*.php
+        </div>
+    </div>";
+}
 
-// Step 4: Veritabanı bağlantısını yoxla
+// Step 2: Veritabanı konfiqurasiyası
 echo "</div><div class='step'>
     <div class='step-header'>
-        <h4>4. Veritabanı Bağlantısı</h4>
+        <h4>2. Veritabanı Konfiqurasiyası</h4>
     </div>";
 
 if (isset($_POST['db_host']) && isset($_POST['db_name']) && isset($_POST['db_user'])) {
@@ -134,36 +114,147 @@ class Database {
         
         return \$this->conn;
     }
-}";
+}
+
+// Veritabanı cədvəllərini yaratmaq üçün SQL
+function createTables(\$conn) {
+    \$sql = \"
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        telegram_id BIGINT UNIQUE NOT NULL,
+        username VARCHAR(255),
+        first_name VARCHAR(255),
+        last_name VARCHAR(255),
+        email VARCHAR(255),
+        balance DECIMAL(10,2) DEFAULT 0.00,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        icon VARCHAR(255),
+        status ENUM('active', 'inactive') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS services (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        category_id INT,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10,4) NOT NULL,
+        min_quantity INT DEFAULT 1,
+        max_quantity INT DEFAULT 1000,
+        service_type ENUM('followers', 'likes', 'views', 'comments', 'shares') NOT NULL,
+        platform VARCHAR(100) NOT NULL,
+        status ENUM('active', 'inactive') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        service_id INT NOT NULL,
+        link VARCHAR(500) NOT NULL,
+        quantity INT NOT NULL,
+        price DECIMAL(10,4) NOT NULL,
+        status ENUM('pending', 'in_progress', 'completed', 'cancelled', 'refunded') DEFAULT 'pending',
+        smm_order_id VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (service_id) REFERENCES services(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type ENUM('deposit', 'withdrawal', 'order_payment') NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        description TEXT,
+        status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS smm_api_config (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        api_name VARCHAR(100) NOT NULL,
+        api_url VARCHAR(500) NOT NULL,
+        api_key VARCHAR(500) NOT NULL,
+        status ENUM('active', 'inactive') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    \";
+
+    try {
+        \$conn->exec(\$sql);
+        return true;
+    } catch(PDOException \$e) {
+        echo \"Cədvəl yaratma xətası: \" . \$e->getMessage();
+        return false;
+    }
+}
+
+// Əsas məlumatları doldurmaq
+function insertDefaultData(\$conn) {
+    // Kateqoriyalar
+    \$categories = [
+        ['Instagram', 'Instagram xidmətləri', 'fab fa-instagram'],
+        ['Facebook', 'Facebook xidmətləri', 'fab fa-facebook'],
+        ['YouTube', 'YouTube xidmətləri', 'fab fa-youtube'],
+        ['TikTok', 'TikTok xidmətləri', 'fab fa-tiktok'],
+        ['Twitter', 'Twitter xidmətləri', 'fab fa-twitter']
+    ];
+
+    foreach (\$categories as \$category) {
+        \$stmt = \$conn->prepare(\"INSERT IGNORE INTO categories (name, description, icon) VALUES (?, ?, ?)\");
+        \$stmt->execute(\$category);
+    }
+
+    // Nümunə xidmətlər
+    \$services = [
+        [1, 'Instagram Followers', 'Real Instagram followers', 0.50, 100, 10000, 'followers', 'Instagram'],
+        [1, 'Instagram Likes', 'Instagram post likes', 0.30, 50, 5000, 'likes', 'Instagram'],
+        [1, 'Instagram Views', 'Instagram video views', 0.20, 100, 10000, 'views', 'Instagram'],
+        [2, 'Facebook Likes', 'Facebook page likes', 0.40, 100, 5000, 'likes', 'Facebook'],
+        [3, 'YouTube Views', 'YouTube video views', 0.10, 1000, 100000, 'views', 'YouTube'],
+        [4, 'TikTok Followers', 'TikTok followers', 0.60, 100, 10000, 'followers', 'TikTok']
+    ];
+
+    foreach (\$services as \$service) {
+        \$stmt = \$conn->prepare(\"INSERT IGNORE INTO services (category_id, name, description, price, min_quantity, max_quantity, service_type, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?)\");
+        \$stmt->execute(\$service);
+    }
+}
+?>";
         
         if (file_put_contents('config/database.php', $config_content)) {
             chmod('config/database.php', 0644);
             echo "<p class='success'>✅ Veritabanı konfiqurasiyası yaradıldı</p>";
+            
+            // Cədvəlləri yarat
+            require_once 'config/database.php';
+            $database = new Database();
+            $conn = $database->getConnection();
+            
+            if (createTables($conn)) {
+                echo "<p class='success'>✅ Veritabanı cədvəlləri yaradıldı</p>";
+                insertDefaultData($conn);
+                echo "<p class='success'>✅ Əsas məlumatlar əlavə edildi</p>";
+            } else {
+                echo "<p class='error'>❌ Cədvəl yaratma xətası</p>";
+            }
         } else {
-            echo "<p class='error'>❌ Veritabanı konfiqurasiyası yaradıla bilmədi. Fayl icazələrini yoxlayın.</p>";
-            $all_success = false;
-        }
-        
-        // Cədvəlləri yarat
-        require_once 'config/database.php';
-        $database = new Database();
-        $conn = $database->getConnection();
-        
-        if (createTables($conn)) {
-            echo "<p class='success'>✅ Veritabanı cədvəlləri yaradıldı</p>";
-            insertDefaultData($conn);
-            echo "<p class='success'>✅ Əsas məlumatlar əlavə edildi</p>";
-            $steps[] = ['name' => 'Database Setup', 'status' => 'success'];
-        } else {
-            echo "<p class='error'>❌ Cədvəl yaratma xətası</p>";
-            $steps[] = ['name' => 'Database Setup', 'status' => 'error'];
-            $all_success = false;
+            echo "<p class='error'>❌ Veritabanı konfiqurasiyası yaradıla bilmədi</p>";
         }
         
     } catch (PDOException $e) {
         echo "<p class='error'>❌ Veritabanı bağlantı xətası: " . $e->getMessage() . "</p>";
-        $steps[] = ['name' => 'Database Setup', 'status' => 'error'];
-        $all_success = false;
     }
 } else {
     echo "<form method='POST' class='row g-3'>
@@ -189,10 +280,10 @@ class Database {
     </form>";
 }
 
-// Step 5: Bot konfiqurasiyası
+// Step 3: Bot konfiqurasiyası
 echo "</div><div class='step'>
     <div class='step-header'>
-        <h4>5. Telegram Bot Konfiqurasiyası</h4>
+        <h4>3. Telegram Bot Konfiqurasiyası</h4>
     </div>";
 
 if (isset($_POST['bot_token']) && isset($_POST['webhook_url']) && isset($_POST['webapp_url'])) {
@@ -253,7 +344,7 @@ class TelegramBot {
     
     public function setWebhook() {
         \$url = \"https://api.telegram.org/bot{\$this->bot_token}/setWebhook\";
-        \$data = ['url' => \$this->webhook_url];
+        \$data = ['url' => \$webhook_url];
         
         return \$this->makeRequest(\$url, \$data);
     }
@@ -289,22 +380,18 @@ class TelegramBot {
     if (file_put_contents('config/telegram.php', $telegram_config)) {
         chmod('config/telegram.php', 0644);
         echo "<p class='success'>✅ Bot konfiqurasiyası yaradıldı</p>";
+        
+        // Webhook-u quraşdır
+        $telegram = new TelegramBot($bot_token, $webhook_url);
+        $webhook_result = $telegram->setWebhook();
+        
+        if ($webhook_result['ok']) {
+            echo "<p class='success'>✅ Webhook quraşdırıldı</p>";
+        } else {
+            echo "<p class='error'>❌ Webhook xətası: " . $webhook_result['description'] . "</p>";
+        }
     } else {
-        echo "<p class='error'>❌ Bot konfiqurasiyası yaradıla bilmədi. Fayl icazələrini yoxlayın.</p>";
-        $all_success = false;
-    }
-    
-    // Webhook-u quraşdır
-    $telegram = new TelegramBot($bot_token, $webhook_url);
-    $webhook_result = $telegram->setWebhook();
-    
-    if ($webhook_result['ok']) {
-        echo "<p class='success'>✅ Webhook quraşdırıldı</p>";
-        $steps[] = ['name' => 'Bot Configuration', 'status' => 'success'];
-    } else {
-        echo "<p class='error'>❌ Webhook xətası: " . $webhook_result['description'] . "</p>";
-        $steps[] = ['name' => 'Bot Configuration', 'status' => 'error'];
-        $all_success = false;
+        echo "<p class='error'>❌ Bot konfiqurasiyası yaradıla bilmədi</p>";
     }
     
 } else {
@@ -316,11 +403,11 @@ class TelegramBot {
         </div>
         <div class='col-12'>
             <label class='form-label'>Webhook URL</label>
-            <input type='url' class='form-control' name='webhook_url' placeholder='https://yourdomain.com/webhook.php' required>
+            <input type='url' class='form-control' name='webhook_url' placeholder='https://smmaze.duckdns.org/webhook.php' required>
         </div>
         <div class='col-12'>
             <label class='form-label'>Webapp URL</label>
-            <input type='url' class='form-control' name='webapp_url' placeholder='https://yourdomain.com/index.php' required>
+            <input type='url' class='form-control' name='webapp_url' placeholder='https://smmaze.duckdns.org/index.php' required>
         </div>
         <div class='col-12'>
             <button type='submit' class='btn btn-primary'>Bot Konfiqurasiyasını Yadda Saxla</button>
@@ -331,36 +418,20 @@ class TelegramBot {
 // Nəticə
 echo "</div><div class='step'>
     <div class='step-header'>
-        <h4>📊 Quraşdırma Nəticəsi</h4>
-    </div>";
-
-$success_count = 0;
-foreach ($steps as $step) {
-    if ($step['status'] === 'success') {
-        $success_count++;
-    }
-}
-
-if ($all_success && count($steps) >= 4) {
-    echo "<div class='alert alert-success'>
-        <h5>🎉 Quraşdırma Tamamlandı!</h5>
-        <p>Bütün addımlar uğurla tamamlandı. İndi botunuzu istifadə edə bilərsiniz.</p>
+        <h4>🎉 Quraşdırma Tamamlandı!</h4>
+    </div>
+    <div class='alert alert-success'>
+        <h5>✅ SMM Panel hazırdır!</h5>
+        <p>İndi botunuzu istifadə edə bilərsiniz.</p>
         <hr>
         <h6>Növbəti addımlar:</h6>
         <ul>
             <li>Botu Telegram-da tapın və /start yazın</li>
             <li>SMM API məlumatlarını config/smm_api.php faylında təyin edin</li>
-            <li>Cron job-ları quraşdırın (tövsiyə olunur)</li>
+            <li>Cron job əlavə edin: <code>*/5 * * * * php /path/to/cron.php</code></li>
         </ul>
-    </div>";
-} else {
-    echo "<div class='alert alert-warning'>
-        <h5>⚠️ Quraşdırma Tamamlanmadı</h5>
-        <p>Bəzi addımlar uğursuz oldu. Zəhmət olmasa xətaları düzəldin və yenidən cəhd edin.</p>
-    </div>";
-}
-
-echo "</div></div>
+    </div>
+</div></div>
 <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'></script>
 </body>
 </html>";
