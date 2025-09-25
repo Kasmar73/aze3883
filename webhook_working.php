@@ -1,9 +1,9 @@
 <?php
-// Final webhook faylı
+// İşləyən webhook faylı
 header('Content-Type: application/json');
 
 // Log faylı
-$log_file = 'logs/webhook_final_' . date('Y-m-d') . '.log';
+$log_file = 'logs/webhook_working_' . date('Y-m-d') . '.log';
 
 function writeLog($message) {
     global $log_file;
@@ -101,7 +101,8 @@ if (isset($update['message'])) {
             ]
         ];
         
-        sendMessage($bot_token, $chat_id, $response_text, $keyboard);
+        $result = sendMessage($bot_token, $chat_id, $response_text, $keyboard);
+        writeLog("Cavab göndərildi: " . json_encode($result));
         
     } elseif ($text === '/help') {
         $help_text = "📋 Yardım\n\n";
@@ -112,7 +113,8 @@ if (isset($update['message'])) {
         $help_text .= "/panel - SMM panelini açın\n\n";
         $help_text .= "Suallarınız üçün: @support_username";
         
-        sendMessage($bot_token, $chat_id, $help_text);
+        $result = sendMessage($bot_token, $chat_id, $help_text);
+        writeLog("Help cavabı göndərildi: " . json_encode($result));
         
     } elseif ($text === '/balance') {
         $balance_text = "💰 Balansınız: 0.00 AZN\n\n";
@@ -129,7 +131,8 @@ if (isset($update['message'])) {
             ]
         ];
         
-        sendMessage($bot_token, $chat_id, $balance_text, $keyboard);
+        $result = sendMessage($bot_token, $chat_id, $balance_text, $keyboard);
+        writeLog("Balance cavabı göndərildi: " . json_encode($result));
         
     } elseif ($text === '/orders') {
         $orders_text = "📋 Son Sifarişləriniz:\n\n";
@@ -147,7 +150,8 @@ if (isset($update['message'])) {
             ]
         ];
         
-        sendMessage($bot_token, $chat_id, $orders_text, $keyboard);
+        $result = sendMessage($bot_token, $chat_id, $orders_text, $keyboard);
+        writeLog("Orders cavabı göndərildi: " . json_encode($result));
         
     } elseif ($text === '/panel') {
         $panel_text = "🚀 SMM Panel-i açmaq üçün aşağıdakı düyməni basın:";
@@ -163,14 +167,16 @@ if (isset($update['message'])) {
             ]
         ];
         
-        sendMessage($bot_token, $chat_id, $panel_text, $keyboard);
+        $result = sendMessage($bot_token, $chat_id, $panel_text, $keyboard);
+        writeLog("Panel cavabı göndərildi: " . json_encode($result));
         
     } else {
         $default_text = "❓ Məlum olmayan əmr.\n\n";
         $default_text .= "Yardım üçün /help yazın.\n";
         $default_text .= "Panel-i açmaq üçün /panel yazın.";
         
-        sendMessage($bot_token, $chat_id, $default_text);
+        $result = sendMessage($bot_token, $chat_id, $default_text);
+        writeLog("Default cavabı göndərildi: " . json_encode($result));
     }
     
     echo json_encode([
@@ -211,9 +217,13 @@ function sendMessage($bot_token, $chat_id, $text, $reply_markup = null) {
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
     $result = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
-    return json_decode($result, true);
+    return [
+        'http_code' => $http_code,
+        'result' => json_decode($result, true)
+    ];
 }
 
 writeLog("Webhook tamamlandı");
