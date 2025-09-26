@@ -14,7 +14,7 @@ function writeLog($message) {
 writeLog("Browser webhook çağırıldı - Method: " . $_SERVER['REQUEST_METHOD']);
 
 // Bot token (buraya öz tokeninizi yazın)
-$bot_token = "7739231947:YOUR_BOT_TOKEN_HERE";
+$bot_token = "7739231947:AAHXh7wdpocOqVNPl-Nmu9fEFrxUbDLaZc0";
 
 // Əgər bot token təyin edilməyibsə
 if ($bot_token === "7739231947:YOUR_BOT_TOKEN_HERE") {
