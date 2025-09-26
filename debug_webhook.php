@@ -72,7 +72,7 @@ if (isset($update['message'])) {
     writeLog("Mesaj alındı: Chat ID: {$chat_id}, Text: {$text}");
     
     // Bot token (buraya öz tokeninizi yazın)
-    $bot_token = "YOUR_BOT_TOKEN_HERE";
+    $bot_token = "7739231947:YOUR_BOT_TOKEN_HERE";
     
     // Əgər bot token təyin edilməyibsə, log yaz
     if ($bot_token === "YOUR_BOT_TOKEN_HERE") {
